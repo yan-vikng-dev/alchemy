@@ -221,6 +221,7 @@ export interface WorkerMetadata {
   placement?: WorkerPlacement;
   limits?: {
     cpu_ms?: number;
+    subrequests?: number;
   };
   tail_consumers?: Array<Worker | { service: string }>;
 }
@@ -638,6 +639,13 @@ export async function prepareWorkerMetadata(
           "destinationAddress" in binding
             ? binding.destinationAddress
             : undefined,
+      });
+    } else if (binding.type === "vpc_service") {
+      meta.bindings.push({
+        type: "vpc_service",
+        name: bindingName,
+        service_name: binding.name,
+        service_id: binding.serviceId,
       });
     } else {
       assertNever(

@@ -21,6 +21,7 @@ import type { Secret as CloudflareSecret } from "./secret.ts";
 import type { SendEmail as _SendEmail } from "./send-email.ts";
 import type { VectorizeIndex as _VectorizeIndex } from "./vectorize-index.ts";
 import type { VersionMetadata as _VersionMetadata } from "./version-metadata.ts";
+import type { VpcService as _VpcService } from "./vpc-service.ts";
 import type { WorkerLoader as _WorkerLoader } from "./worker-loader.ts";
 import type { WorkerRef } from "./worker-ref.ts";
 import type { WorkerStub } from "./worker-stub.ts";
@@ -108,6 +109,8 @@ export type Bound<T extends Binding> =
                                                               >
                                                             : T extends _SendEmail
                                                               ? SendEmail
-                                                              : T extends undefined
-                                                                ? undefined
-                                                                : Service;
+                                                              : T extends _VpcService
+                                                                ? Fetcher
+                                                                : T extends undefined
+                                                                  ? undefined
+                                                                  : Service;

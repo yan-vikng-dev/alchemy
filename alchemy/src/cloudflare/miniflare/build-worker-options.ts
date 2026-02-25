@@ -8,7 +8,6 @@ import type { CloudflareApi } from "../api.ts";
 import type {
   Binding,
   Bindings,
-  WorkerBindingSendEmail,
   WorkerBindingService,
   WorkerBindingSpec,
 } from "../bindings.ts";
@@ -32,33 +31,30 @@ export interface MiniflareWorkerInput {
   cwd: string;
 }
 
-type RemoteOnlyBindingType =
-  | "ai"
-  | "browser"
-  | "dispatch_namespace"
-  | "mtls_certificate"
-  | "vectorize";
-type RemoteOptionalBindingType =
-  | "d1"
-  | "images"
-  | "kv_namespace"
-  | "queue"
-  | "r2_bucket";
-
 type RemoteBinding =
+  // Supported remote bindings that are NOT a fetcher require the `raw` flag.
   | (Extract<
       WorkerBindingSpec,
       {
-        type: RemoteOnlyBindingType | RemoteOptionalBindingType;
+        type:
+          | "ai"
+          | "browser"
+          | "dispatch_namespace"
+          | "mtls_certificate"
+          | "vectorize"
+          | "d1"
+          | "images"
+          | "kv_namespace"
+          | "queue"
+          | "r2_bucket"
+          // TODO: mixed signals on whether send_email requires `raw` boolean:
+          // - implies yes: https://github.com/cloudflare/workers-sdk/blob/482cb5d12ca897e3a9a7d6cc8c650247e86fa6c4/packages/wrangler/src/api/remoteBindings/start-remote-proxy-session.ts#L27
+          // - implies no: https://github.com/cloudflare/workers-sdk/blob/937425cdfe80c0c7f16b5ad47ba905a98fdb5f2e/packages/workers-utils/src/worker.ts#L88
+          | "send_email";
       }
-    > & {
-      raw: true;
-    })
-  // TODO: mixed signals on whether send_email requires `raw` boolean:
-  // - implies yes: https://github.com/cloudflare/workers-sdk/blob/482cb5d12ca897e3a9a7d6cc8c650247e86fa6c4/packages/wrangler/src/api/remoteBindings/start-remote-proxy-session.ts#L27
-  // - implies no: https://github.com/cloudflare/workers-sdk/blob/937425cdfe80c0c7f16b5ad47ba905a98fdb5f2e/packages/workers-utils/src/worker.ts#L88
-  | WorkerBindingSendEmail
-  | WorkerBindingService;
+    > & { raw: true })
+  // Fetcher type bindings do not require the `raw` flag and will throw an error if it is present.
+  | Extract<WorkerBindingSpec, { type: "service" | "vpc_service" }>;
 
 type BaseWorkerOptions = {
   [K in keyof miniflare.WorkerOptions]: K extends
@@ -298,6 +294,7 @@ export const buildWorkerOptions = async (
           remoteBindings.push({
             type: "send_email",
             ...properties,
+            raw: true,
           });
         } else {
           (options.email ??= { send_email: [] }).send_email!.push(properties);
@@ -352,6 +349,15 @@ export const buildWorkerOptions = async (
           tag: "",
           timestamp: "0",
         };
+        break;
+      }
+      case "vpc_service": {
+        remoteBindings.push({
+          type: "vpc_service",
+          name: key,
+          service_name: binding.name,
+          service_id: binding.serviceId,
+        });
         break;
       }
       case "worker_loader": {
@@ -491,6 +497,12 @@ export const buildWorkerOptions = async (
         case "vectorize":
           (options.vectorize ??= {})[binding.name] = {
             index_name: binding.index_name,
+            remoteProxyConnectionString: remoteProxy.connectionString,
+          };
+          break;
+        case "vpc_service":
+          (options.vpcServices ??= {})[binding.name] = {
+            service_id: binding.service_id,
             remoteProxyConnectionString: remoteProxy.connectionString,
           };
           break;
