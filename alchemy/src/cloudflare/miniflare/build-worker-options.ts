@@ -46,15 +46,14 @@ type RemoteBinding =
           | "images"
           | "kv_namespace"
           | "queue"
-          | "r2_bucket"
-          // TODO: mixed signals on whether send_email requires `raw` boolean:
-          // - implies yes: https://github.com/cloudflare/workers-sdk/blob/482cb5d12ca897e3a9a7d6cc8c650247e86fa6c4/packages/wrangler/src/api/remoteBindings/start-remote-proxy-session.ts#L27
-          // - implies no: https://github.com/cloudflare/workers-sdk/blob/937425cdfe80c0c7f16b5ad47ba905a98fdb5f2e/packages/workers-utils/src/worker.ts#L88
-          | "send_email";
+          | "r2_bucket";
       }
     > & { raw: true })
   // Fetcher type bindings do not require the `raw` flag and will throw an error if it is present.
-  | Extract<WorkerBindingSpec, { type: "service" | "vpc_service" }>;
+  | Extract<
+      WorkerBindingSpec,
+      { type: "send_email" | "service" | "vpc_service" }
+    >;
 
 type BaseWorkerOptions = {
   [K in keyof miniflare.WorkerOptions]: K extends
@@ -278,7 +277,11 @@ export const buildWorkerOptions = async (
       case "send_email": {
         const properties = {
           name: key,
-          allowed_sender_addresses: binding.allowedSenderAddresses,
+          ...("allowedSenderAddresses" in binding
+            ? {
+                allowed_sender_addresses: binding.allowedSenderAddresses,
+              }
+            : {}),
           ...("allowedDestinationAddresses" in binding
             ? {
                 allowed_destination_addresses:
@@ -294,7 +297,6 @@ export const buildWorkerOptions = async (
           remoteBindings.push({
             type: "send_email",
             ...properties,
-            raw: true,
           });
         } else {
           (options.email ??= { send_email: [] }).send_email!.push(properties);
