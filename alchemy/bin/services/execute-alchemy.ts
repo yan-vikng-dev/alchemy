@@ -11,8 +11,6 @@ import { findWorkspaceRoot } from "../../src/util/find-workspace-root.ts";
 import { promiseWithResolvers } from "../../src/util/promise-with-resolvers.ts";
 import { collectData } from "../../src/util/telemetry.ts";
 import { ExitSignal } from "../trpc.ts";
-import { CDPProxy } from "./cdp-manager/cdp-proxy.ts";
-import { CDPManager } from "./cdp-manager/server.ts";
 
 import { exec as _exec } from "child_process";
 import { promisify } from "node:util";
@@ -168,9 +166,9 @@ export async function execAlchemy(
     }
   }
   if (dev) args.push("--dev");
-  if (inspect) execArgs.push("--inspect");
-  if (inspectWait) execArgs.push("--inspect-wait");
-  if (inspectBrk) execArgs.push("--inspect-brk");
+  // if (inspect) execArgs.push("--inspect");
+  // if (inspectWait) execArgs.push("--inspect-wait");
+  // if (inspectBrk) execArgs.push("--inspect-brk");
   if (adopt) args.push("--adopt");
   if (eraseSecrets) args.push("--erase-secrets");
   if (profile) args.push(`--profile ${profile}`);
@@ -291,28 +289,28 @@ export async function execAlchemy(
     });
   }
 
-  if (shouldInspect) {
-    const inspectorUrl = await inspectorUrlPromise;
-    //* we await to make sure bun has finished printing so we don't cut if off
-    if (childRuntime === "bun") {
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
-    const cdpManager = new CDPManager();
-    await cdpManager.startServer();
-    const rootCDPProxy = new CDPProxy(inspectorUrl, {
-      name: "alchemy.run.ts",
-      server: cdpManager.server,
-      connect: inspectWait || inspectBrk,
-      domains:
-        childRuntime === "bun"
-          ? new Set(["Inspector", "Console", "Runtime", "Debugger", "Heap"])
-          : new Set(["Runtime", "Debugger", "Profiler", "Log"]),
-    });
-    await cdpManager.registerCDPServer(rootCDPProxy);
-    if (inspectWait || inspectBrk) {
-      console.log("Waiting for inspector to connect....");
-    }
-  }
+  // if (shouldInspect) {
+  //   const inspectorUrl = await inspectorUrlPromise;
+  //   //* we await to make sure bun has finished printing so we don't cut if off
+  //   if (childRuntime === "bun") {
+  //     await new Promise((resolve) => setTimeout(resolve, 100));
+  //   }
+  //   const cdpManager = new CDPManager();
+  //   await cdpManager.startServer();
+  //   const rootCDPProxy = new CDPProxy(inspectorUrl, {
+  //     name: "alchemy.run.ts",
+  //     server: cdpManager.server,
+  //     connect: inspectWait || inspectBrk,
+  //     domains:
+  //       childRuntime === "bun"
+  //         ? new Set(["Inspector", "Console", "Runtime", "Debugger", "Heap"])
+  //         : new Set(["Runtime", "Debugger", "Profiler", "Log"]),
+  //   });
+  //   await cdpManager.registerCDPServer(rootCDPProxy);
+  //   if (inspectWait || inspectBrk) {
+  //     console.log("Waiting for inspector to connect....");
+  //   }
+  // }
 
   const exitPromise = once(child, "exit");
   await exitPromise.catch(() => {});
