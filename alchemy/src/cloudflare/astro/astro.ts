@@ -88,6 +88,14 @@ export async function Astro<B extends Bindings>(
       props.entrypoint ??
       (output === "server" ? "dist/server/entry.mjs" : undefined),
     assets: props.assets ?? (output === "server" ? "dist/client" : "dist"),
+    wrangler: {
+      ...props.wrangler,
+      main:
+        props.wrangler?.main ??
+        (output === "server"
+          ? "@astrojs/cloudflare/entrypoints/server"
+          : undefined),
+    },
     spa: false,
   });
 }

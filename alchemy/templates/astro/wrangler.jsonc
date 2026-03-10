@@ -1,6 +1,6 @@
 {
   "name": "website",
-  "main": "dist/server/entry.mjs",
+  "main": "@astrojs/cloudflare/entrypoints/server",
   "compatibility_date": "2025-04-20",
   "assets": { "binding": "ASSETS", "directory": "dist/client" },
 }
