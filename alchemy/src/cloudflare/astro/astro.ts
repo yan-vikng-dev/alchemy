@@ -86,8 +86,8 @@ export async function Astro<B extends Bindings>(
     dev: spreadDevProps(props, `${runner} astro dev`),
     entrypoint:
       props.entrypoint ??
-      (output === "server" ? "dist/_worker.js/index.js" : undefined),
-    assets: props.assets ?? "dist",
+      (output === "server" ? "dist/server/entry.mjs" : undefined),
+    assets: props.assets ?? (output === "server" ? "dist/client" : "dist"),
     spa: false,
   });
 }
