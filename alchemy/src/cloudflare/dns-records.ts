@@ -64,6 +64,13 @@ export interface DnsRecordsProps extends CloudflareApiOptions {
    * Array of DNS records to manage
    */
   records: DnsRecordProps[];
+
+  /**
+   * Whether to delete DNS records when the resource is destroyed.
+   * Set to false to preserve records in Cloudflare when removing from alchemy.
+   * @default true
+   */
+  delete?: boolean;
 }
 
 /**
@@ -139,7 +146,7 @@ export const DnsRecords = Resource(
     const zoneId = props.zoneId;
 
     if (this.phase === "delete") {
-      if (this.output?.records) {
+      if (props.delete !== false && this.output?.records) {
         // Delete all existing records
         await Promise.all(
           this.output.records.map(async (record) => {
@@ -174,23 +181,25 @@ export const DnsRecords = Resource(
         }
       }
 
-      // Delete orphaned records
-      await Promise.all(
-        recordsToDelete.map(async (record) => {
-          try {
-            const response = await api.delete(
-              `/zones/${zoneId}/dns_records/${record.id}`,
-            );
-            if (!response.ok && response.status !== 404) {
-              logger.error(
-                `Failed to delete DNS record ${record.name}: ${response.statusText}`,
+      // Delete orphaned records (skip if delete: false)
+      if (props.delete !== false) {
+        await Promise.all(
+          recordsToDelete.map(async (record) => {
+            try {
+              const response = await api.delete(
+                `/zones/${zoneId}/dns_records/${record.id}`,
               );
+              if (!response.ok && response.status !== 404) {
+                logger.error(
+                  `Failed to delete DNS record ${record.name}: ${response.statusText}`,
+                );
+              }
+            } catch (error) {
+              logger.error(`Error deleting DNS record ${record.name}:`, error);
             }
-          } catch (error) {
-            logger.error(`Error deleting DNS record ${record.name}:`, error);
-          }
-        }),
-      );
+          }),
+        );
+      }
 
       // Update or create records
       const updatedRecords = await Promise.all(

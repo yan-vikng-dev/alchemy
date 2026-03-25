@@ -150,6 +150,48 @@ describe.sequential("DnsRecords Resource", async () => {
     }
   });
 
+  test("delete false preserves records on destroy", async (scope) => {
+    let dnsRecords;
+    try {
+      // Create records with delete: false
+      dnsRecords = await DnsRecords(`${testDomain}-nodelete-dns`, {
+        zoneId: zone.id,
+        delete: false,
+        records: [
+          {
+            name: `nodelete.${testDomain}`,
+            type: "A",
+            content: "192.0.2.1",
+            proxied: false,
+          },
+        ],
+      });
+
+      expect(dnsRecords.records).toHaveLength(1);
+    } finally {
+      // Destroy should NOT delete the actual DNS records
+      await destroy(scope);
+
+      // Verify records still exist in Cloudflare
+      if (dnsRecords?.records) {
+        for (const record of dnsRecords.records) {
+          const response = await api.get(
+            `/zones/${dnsRecords.zoneId}/dns_records/${record.id}`,
+          );
+          // Record should still exist (NOT 404)
+          expect(response.ok).toBe(true);
+        }
+
+        // Manual cleanup since delete: false preserved them
+        for (const record of dnsRecords.records) {
+          await api.delete(
+            `/zones/${dnsRecords.zoneId}/dns_records/${record.id}`,
+          );
+        }
+      }
+    }
+  });
+
   test("handles duplicate records gracefully", async (scope) => {
     try {
       const dnsRecords = await DnsRecords(`${testDomain}-duplicate-dns`, {
