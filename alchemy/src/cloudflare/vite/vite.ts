@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import path from "pathe";
 import { getPackageManagerRunner } from "../../util/detect-package-manager.ts";
 import type { Assets } from "../assets.ts";
@@ -26,7 +27,8 @@ export async function Vite<
   RPC extends Rpc.WorkerEntrypointBranded = Rpc.WorkerEntrypointBranded,
 >(id: string, props: ViteProps<B, RPC>): Promise<Vite<B, RPC>> {
   const runner = await getPackageManagerRunner();
-  let dev = spreadDevProps(props, `${runner} vite dev`);
+  const viteBin = await detectVitePlus(props.cwd ?? process.cwd());
+  let dev = spreadDevProps(props, `${runner} ${viteBin} dev`);
   let domain = typeof dev === "object" ? dev.domain : undefined;
   const command = typeof dev === "object" ? dev.command! : dev;
   if (!domain) {
@@ -62,11 +64,27 @@ export async function Vite<
               props.assets?.directory ??
               (props.entrypoint || props.script ? "dist/client" : "dist"),
           },
-    build: spreadBuildProps(props, `${runner} vite build`),
+    build: spreadBuildProps(props, `${runner} ${viteBin} build`),
     dev: domain
       ? typeof dev === "string"
         ? { command: dev, domain }
         : { ...dev, domain }
       : dev,
   });
+}
+
+async function detectVitePlus(cwd: string): Promise<string> {
+  try {
+    const pkgJson = JSON.parse(
+      await readFile(path.resolve(cwd, "package.json"), "utf-8"),
+    );
+    const deps = {
+      ...pkgJson.dependencies,
+      ...pkgJson.devDependencies,
+    };
+    if ("vite-plus" in deps) {
+      return "vp";
+    }
+  } catch {}
+  return "vite";
 }
