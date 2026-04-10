@@ -1081,6 +1081,10 @@ const _Worker = Resource(
           binding.type === "workflow" &&
           (!binding.scriptName || binding.scriptName === workerName)
         ) {
+          if (!binding.workflowName) {
+            binding.workflowName = this.scope
+              .createPhysicalName(binding.id, "-", 64);
+          }
           workflows.push(binding);
         } else if (
           binding.type === "durable_object_namespace" &&
