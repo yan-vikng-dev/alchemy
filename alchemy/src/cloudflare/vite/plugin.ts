@@ -34,6 +34,11 @@ const alchemy = (config?: PluginConfig): PluginOption => {
         if (process.env.ALCHEMY_DEV_TUNNEL === "quick") {
           // leading dot = match all subdomains
           allowedHosts.push(".trycloudflare.com");
+        } else if (
+          process.env.ALCHEMY_DEV_TUNNEL === "named" &&
+          process.env.ALCHEMY_DEV_TUNNEL_HOST
+        ) {
+          allowedHosts.push(process.env.ALCHEMY_DEV_TUNNEL_HOST);
         }
         return {
           server: {

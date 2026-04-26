@@ -10,6 +10,13 @@ import { Assets } from "./assets.ts";
 import type { Bindings } from "./bindings.ts";
 import { DEFAULT_COMPATIBILITY_DATE } from "./compatibility-date.ts";
 import { unionCompatibilityFlags } from "./compatibility-presets.ts";
+import {
+  type DevTunnel,
+  getDevTunnel,
+  getDevTunnelEnv,
+  isNamedDevTunnel,
+  namedTunnel,
+} from "./dev-tunnel.ts";
 import { quickTunnel } from "./quick-tunnel.ts";
 import {
   extractStringAndSecretBindings,
@@ -82,7 +89,7 @@ export interface WebsiteProps<
         /**
          * Whether to use a Cloudflare Tunnel for the dev server
          */
-        tunnel?: boolean;
+        tunnel?: DevTunnel;
         /**
          * Additional environment variables to set when running the dev command
          */
@@ -344,8 +351,15 @@ export async function Website<
   let url: string | undefined;
   const devCommand = typeof dev === "string" ? dev : dev?.command;
   if (devCommand && scope.local) {
-    const tunnelEnabled =
-      (typeof dev === "object" && dev.tunnel) || scope.tunnel;
+    const devTunnel = getDevTunnel(
+      typeof dev === "object" ? dev.tunnel : undefined,
+      scope.tunnel,
+      {
+        domains: workerProps.domains,
+        resourceId: id,
+        stage: scope.stage,
+      },
+    );
     url = await scope.spawn(name, {
       cmd: devCommand,
       cwd: paths.cwd,
@@ -368,12 +382,14 @@ export async function Website<
         // which breaks `vite dev` (it won't, for example, re-write `process.env.TSS_APP_BASE` in the `.js` client side bundle)
         NODE_ENV: "development",
         ALCHEMY_ROOT: Scope.current.rootDir,
-        ...(tunnelEnabled ? { ALCHEMY_DEV_TUNNEL: "quick" } : {}),
+        ...getDevTunnelEnv(devTunnel),
       },
     });
-    if (url && tunnelEnabled) {
+    if (url && devTunnel === true) {
       const { tunnelUrl } = await quickTunnel(scope, url);
       url = tunnelUrl;
+    } else if (url && isNamedDevTunnel(devTunnel)) {
+      url = await namedTunnel(scope, id, devTunnel, url);
     }
   }
 

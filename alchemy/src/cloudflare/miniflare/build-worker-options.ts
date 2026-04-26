@@ -13,6 +13,7 @@ import type {
   WorkerBindingService,
   WorkerBindingSpec,
 } from "../bindings.ts";
+import type { ResolvedDevTunnel } from "../dev-tunnel.ts";
 import { isQueueEventSource, type EventSource } from "../event-source.ts";
 import type { WorkerBundle, WorkerBundleSource } from "../worker-bundle.ts";
 import type { AssetsConfig } from "../worker.ts";
@@ -29,7 +30,7 @@ export interface MiniflareWorkerInput {
   assets: AssetsConfig | undefined;
   bundle: WorkerBundleSource;
   port: number | undefined;
-  tunnel: boolean | undefined;
+  tunnel: ResolvedDevTunnel | undefined;
   cwd: string;
 }
 

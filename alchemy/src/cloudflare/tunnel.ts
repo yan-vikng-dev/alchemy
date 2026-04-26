@@ -117,6 +117,14 @@ export interface TunnelProps extends CloudflareApiOptions {
    * @default true
    */
   delete?: boolean;
+
+  /**
+   * Whether to fetch the tunnel token.
+   * Set to false when the tunnel is run through local Cloudflare auth, for example `wrangler tunnel run <name>`.
+   *
+   * @default true
+   */
+  token?: boolean;
 }
 
 /**
@@ -271,7 +279,10 @@ export function isTunnel(resource: any): resource is Tunnel {
 /**
  * Output returned after Tunnel creation/update
  */
-export interface Tunnel extends Omit<TunnelProps, "delete" | "tunnelSecret"> {
+export interface Tunnel extends Omit<
+  TunnelProps,
+  "delete" | "token" | "tunnelSecret"
+> {
   /**
    * The name of the tunnel
    */
@@ -600,7 +611,7 @@ export const Tunnel = Resource(
 
     // Ensure tunnel token is available (unless we're replacing)
     // Sometimes Cloudflare doesn't return the token in the initial response
-    if (!isReplacing && !tunnelData.token) {
+    if (props.token !== false && !isReplacing && !tunnelData.token) {
       tunnelData.token = await getTunnelToken(api, tunnelData.id);
     }
 

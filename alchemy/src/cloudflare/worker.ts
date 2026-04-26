@@ -31,6 +31,7 @@ import {
 } from "./compatibility-presets.ts";
 import { type Container, ContainerApplication } from "./container.ts";
 import { CustomDomain } from "./custom-domain.ts";
+import { type DevTunnel, getDevTunnel } from "./dev-tunnel.ts";
 import type { DispatchNamespace } from "./dispatch-namespace.ts";
 import {
   DurableObjectNamespace,
@@ -384,7 +385,7 @@ export interface BaseWorkerProps<
          *
          * @default false
          */
-        tunnel?: boolean;
+        tunnel?: DevTunnel;
         url?: undefined;
       }
     | {
@@ -1174,7 +1175,11 @@ const _Worker = Resource(
           assets: props.assets,
           bundle,
           port: props.dev?.port,
-          tunnel: props.dev?.tunnel ?? this.scope.tunnel,
+          tunnel: getDevTunnel(props.dev?.tunnel, this.scope.tunnel, {
+            domains: props.domains,
+            resourceId: id,
+            stage: this.scope.stage,
+          }),
           cwd: props.cwd ?? process.cwd(),
         });
         this.onCleanup(() => controller.dispose());

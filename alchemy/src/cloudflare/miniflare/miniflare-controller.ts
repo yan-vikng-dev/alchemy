@@ -2,6 +2,7 @@ import * as miniflare from "miniflare";
 import assert from "node:assert";
 import path from "pathe";
 import { Scope } from "../../scope.ts";
+import { isNamedDevTunnel, namedTunnel } from "../dev-tunnel.ts";
 import { reservePort } from "../../util/find-open-port.ts";
 import type { HTTPServer } from "../../util/http.ts";
 import { logger } from "../../util/logger.ts";
@@ -47,7 +48,7 @@ export class MiniflareController {
     this.options.set(input.name, first.value);
     const miniflare = await this.update();
     let url: URL;
-    if (input.tunnel) {
+    if (input.tunnel === true) {
       this.tunnel ??= await createTunnel(miniflare);
       url = await this.tunnel.configureWorker({
         api: input.api,
@@ -61,7 +62,16 @@ export class MiniflareController {
         mode: "local",
       });
       this.localProxies.set(input.name, proxy);
-      url = proxy.url;
+      url = isNamedDevTunnel(input.tunnel)
+        ? new URL(
+            await namedTunnel(
+              Scope.current,
+              input.id,
+              input.tunnel,
+              proxy.url.toString(),
+            ),
+          )
+        : proxy.url;
     }
     void this.watch(input.id, watcher);
     logger.task(input.id, {
