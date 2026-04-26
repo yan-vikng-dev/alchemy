@@ -344,6 +344,8 @@ export async function Website<
   let url: string | undefined;
   const devCommand = typeof dev === "string" ? dev : dev?.command;
   if (devCommand && scope.local) {
+    const tunnelEnabled =
+      (typeof dev === "object" && dev.tunnel) || scope.tunnel;
     url = await scope.spawn(name, {
       cmd: devCommand,
       cwd: paths.cwd,
@@ -366,9 +368,10 @@ export async function Website<
         // which breaks `vite dev` (it won't, for example, re-write `process.env.TSS_APP_BASE` in the `.js` client side bundle)
         NODE_ENV: "development",
         ALCHEMY_ROOT: Scope.current.rootDir,
+        ...(tunnelEnabled ? { ALCHEMY_DEV_TUNNEL: "quick" } : {}),
       },
     });
-    if (url && ((typeof dev === "object" && dev.tunnel) || scope.tunnel)) {
+    if (url && tunnelEnabled) {
       const { tunnelUrl } = await quickTunnel(scope, url);
       url = tunnelUrl;
     }

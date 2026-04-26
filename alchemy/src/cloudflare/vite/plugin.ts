@@ -28,13 +28,19 @@ const alchemy = (config?: PluginConfig): PluginOption => {
       persistState,
     }),
     {
-      name: "alchemy-supress-watch",
+      name: "alchemy:dev",
       config() {
+        const allowedHosts: string[] = [];
+        if (process.env.ALCHEMY_DEV_TUNNEL === "quick") {
+          // leading dot = match all subdomains
+          allowedHosts.push(".trycloudflare.com");
+        }
         return {
           server: {
             watch: {
               ignored: ["**/.alchemy/**"],
             },
+            ...(allowedHosts.length ? { allowedHosts } : {}),
           },
         };
       },
