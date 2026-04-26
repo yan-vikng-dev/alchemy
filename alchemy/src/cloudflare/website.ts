@@ -79,6 +79,10 @@ export interface WebsiteProps<
          */
         domain?: string;
         /**
+         * Whether to use a Cloudflare Tunnel for the dev server
+         */
+        tunnel?: boolean;
+        /**
          * Additional environment variables to set when running the dev command
          */
         env?: Record<string, string>;
@@ -377,7 +381,16 @@ export async function Website<
           }
         : {}),
     },
-    dev: url ? { url } : undefined,
+    dev: worker.dev
+      ? {
+          url: url as never,
+          port: worker.dev.port,
+          remote: worker.dev.remote,
+          tunnel: worker.dev.tunnel,
+        }
+      : url
+        ? { url }
+        : undefined,
   })) as Website<B, RPC>;
 }
 
