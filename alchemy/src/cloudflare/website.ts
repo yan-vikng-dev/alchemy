@@ -8,9 +8,9 @@ import { logger } from "../util/logger.ts";
 import { createCloudflareApi } from "./api.ts";
 import { Assets } from "./assets.ts";
 import type { Bindings } from "./bindings.ts";
-import { quickTunnel } from "./quick-tunnel.ts";
 import { DEFAULT_COMPATIBILITY_DATE } from "./compatibility-date.ts";
 import { unionCompatibilityFlags } from "./compatibility-presets.ts";
+import { quickTunnel } from "./quick-tunnel.ts";
 import {
   extractStringAndSecretBindings,
   unencryptSecrets,
@@ -368,7 +368,7 @@ export async function Website<
         ALCHEMY_ROOT: Scope.current.rootDir,
       },
     });
-    if (url && typeof dev === "object" && dev.tunnel) {
+    if (url && ((typeof dev === "object" && dev.tunnel) || scope.tunnel)) {
       const { tunnelUrl } = await quickTunnel(scope, url);
       url = tunnelUrl;
     }
